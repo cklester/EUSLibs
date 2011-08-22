@@ -1,51 +1,38 @@
 include std/sequence.e
 include std/get.e
+include std/map.e
 
-sequence settings
-	settings = {{},{}}
+sequence fname = "settings.txt"
+
+map:map settings
+
+public procedure save_settings()
+	save_map( settings, fname )
+end procedure
 	
-public function load_settings(sequence fname)
-atom fn
-object line
-sequence txt
-	fn = open(fname,"r")
-	if fn > 0 then
-	    line = gets(fn)
-	    while not atom(line) do
-		if length(line) != 0 then
-			if line[1] != '#' then
-			    txt = split(line,'=')
-			    if length(txt[1]) > 0 and length(txt[2]) > 0 then
-					settings[1] = append(settings[1],txt[1])
-					if txt[2][$] = 10 then
-					    txt[2] = txt[2][1..$-1]
-					end if
-					settings[2] = append(settings[2],txt[2])
-				end if
-		    end if
-		end if
-		line = gets(fn)
-	    end while
-	    close(fn)
-	    return 1
+public procedure mod_setting( sequence set, object newval )
+	map:put( settings, set, newval )
+end procedure
+
+public function load_settings()
+object s = load_map( fname )
+	if not equal(s,-1) then
+		settings = s
 	else
-	    puts(1,"Could not open '" & fname & "'")
-	    puts(1,"\nContact your IT department.")
-	    puts(1,"\nPress any key to quit.")
-	    return 0
+		settings = map:new()
+		mod_setting( "DB", "SQLite" )
+		save_settings() -- write the new file
 	end if
+	return not equal(s,-1)
 end function
 
-global function get_setting(sequence set, integer AS_NUMBER = 0)
-integer i
-	i = find(set,settings[1])
-	if i > 0 then
-		if AS_NUMBER then
-			sequence TEMP = value( settings[2][i] )
-			return TEMP[2]
-		else
-			return settings[2][i]
-		end if
+public function get_setting(sequence item, integer AS_NUMBER = 0)
+object obj
+	if AS_NUMBER then
+		obj = map:get( settings, item, -1 )
+		obj = value( obj )
+		return obj[2]
+	else
+		return map:get( settings, item, "" )
 	end if
-	return ""
 end function
